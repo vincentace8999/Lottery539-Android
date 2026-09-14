@@ -9,7 +9,9 @@ data class Draw(
 data class Analysis(
     val hot: List<Pair<Int, Int>>,
     val cold: List<Pair<Int, Int>>,
-    val suggested: List<Int>
+    val suggested: List<Int>,
+    val tailSuggested: List<Int>,
+    val previousNumbers: List<Int>
 )
 
 fun analyze(draws: List<Draw>): Analysis {
@@ -22,5 +24,18 @@ fun analyze(draws: List<Draw>): Analysis {
     val candidates = (hot.take(5).map { it.first } + cold.take(4).map { it.first }).distinct()
     val seed = draws.firstOrNull()?.period?.hashCode()?.toLong() ?: System.currentTimeMillis()
     val suggested = candidates.shuffled(kotlin.random.Random(seed)).take(5).sorted()
-    return Analysis(hot, cold, suggested)
+    val previousNumbers = draws.firstOrNull()?.numbers.orEmpty()
+    val tails = previousNumbers.map { it % 10 }.toSet()
+    val byFrequency = compareBy<Int> { counts.getValue(it) }.thenBy { it }
+    val newTailNumbers = (1..39)
+        .filter { it !in previousNumbers && it % 10 in tails }
+        .sortedWith(byFrequency)
+    val repeatedPreviousNumbers = previousNumbers.sortedWith(byFrequency)
+    val tailRandom = kotlin.random.Random(seed xor 0x539L)
+    val tailSuggested = (
+        newTailNumbers.shuffled(tailRandom).take(5) +
+            repeatedPreviousNumbers.shuffled(tailRandom)
+    ).distinct().take(5)
+        .sorted()
+    return Analysis(hot, cold, suggested, tailSuggested, previousNumbers)
 }
