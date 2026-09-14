@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,10 +32,14 @@ class MainActivity : ComponentActivity() {
 
 private val Orange = Color(0xFFE85D04)
 private val Cream = Color(0xFFFFF8F1)
+private val Navy = Color(0xFF17324D)
 
 @Composable
 fun LotteryTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = lightColorScheme(primary = Orange, background = Cream), content = content)
+    MaterialTheme(
+        colorScheme = lightColorScheme(primary = Orange, secondary = Color(0xFF2A9D8F), background = Cream),
+        content = content
+    )
 }
 
 @Composable
@@ -47,18 +52,33 @@ fun LotteryApp(vm: MainViewModel = viewModel()) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("今彩539分析", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
-                        Text("依台彩最近20期資料統計", color = Color.Gray)
+                Card(shape = RoundedCornerShape(24.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().background(
+                            Brush.horizontalGradient(listOf(Navy, Color(0xFF285B73)))
+                        ).padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("今彩 539 智慧分析", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
+                            Text("台彩最近 20 期資料", color = Color(0xFFD6EAF2))
+                        }
+                        FilledTonalButton(onClick = vm::refresh, enabled = !state.loading) { Text("更新資料") }
                     }
-                    Button(onClick = vm::refresh, enabled = !state.loading) { Text("更新") }
                 }
             }
             if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
             state.message?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
             state.analysis?.let { analysis ->
-                item { SuggestedCard(analysis.suggested) }
+                item { SuggestedCard("本期冷熱參考", "熱門與冷門號碼交叉選取", analysis.suggested, Orange) }
+                item {
+                    SuggestedCard(
+                        "上期拖尾參考",
+                        "依上期 ${analysis.previousNumbers.joinToString("、") { it.toString().padStart(2, '0') }} 的尾數延伸",
+                        analysis.tailSuggested,
+                        Color(0xFF7B2CBF)
+                    )
+                }
                 item { FrequencyCard("熱門號碼", analysis.hot, Color(0xFFD62828)) }
                 item { FrequencyCard("冷門號碼", analysis.cold, Color(0xFF457B9D)) }
                 item { Text("最近開獎紀錄", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
@@ -76,18 +96,29 @@ fun LotteryApp(vm: MainViewModel = viewModel()) {
 }
 
 @Composable
-private fun SuggestedCard(numbers: List<Int>) {
-    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFE6CC)), shape = RoundedCornerShape(20.dp)) {
+private fun SuggestedCard(title: String, subtitle: String, numbers: List<Int>, accent: Color) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("本期參考組合", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            NumberRow(numbers, Orange)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(5.dp, 38.dp).background(accent, RoundedCornerShape(6.dp)))
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                }
+            }
+            NumberRow(numbers, accent)
         }
     }
 }
 
 @Composable
 private fun FrequencyCard(title: String, entries: List<Pair<Int, Int>>, color: Color) {
-    Card(shape = RoundedCornerShape(18.dp)) {
+    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -104,7 +135,7 @@ private fun FrequencyCard(title: String, entries: List<Pair<Int, Int>>, color: C
 
 @Composable
 private fun DrawRow(draw: Draw) {
-    Card(shape = RoundedCornerShape(14.dp)) {
+    Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("第 ${draw.period} 期", fontWeight = FontWeight.SemiBold)
